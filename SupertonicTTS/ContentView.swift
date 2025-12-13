@@ -5,7 +5,6 @@
 
 import SwiftUI
 import CompactSlider
-import Combine
 
 
 
@@ -149,7 +148,7 @@ extension ContentView {
             HStack(spacing: 10) {
                 if vm.isGenerating {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .tint(scheme == .light ? .white : .black)
                         .scaleEffect(0.9)
                 } else {
                     Image(systemName: "wand.and.stars")
@@ -163,7 +162,7 @@ extension ContentView {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 13)
             .foregroundStyle(.background)
-            .background( Capsule() )
+            .background(Capsule())
             .shadow(
                 color: Color.accentColor.opacity(scheme == .light ? 0.3 : 0.0),
                 radius: 9, x: 0, y: 4

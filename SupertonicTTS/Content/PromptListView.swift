@@ -45,7 +45,7 @@ struct PromptListView: View {
     }
     
     private var listRowBackgroundStyle: Color {
-        scheme == .light ? Color.white : Color.gray.opacity(0.1)
+        scheme == .light ? Color.white : Color.gray.opacity(0.12)
     }
     
     private var emptyView: some View {
