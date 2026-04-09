@@ -24,6 +24,7 @@ struct EngineConfig: Codable {
 
 struct SynthesisRequest {
     let text: String
+    let language: Language
     let voice: Voice
     let steps: Int
     let speed: Float

@@ -27,6 +27,8 @@
 		BDB0718B2ED69E6D004A12F7 /* SupertonicSynthesizerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB0718A2ED69E6D004A12F7 /* SupertonicSynthesizerEngine.swift */; };
 		BDD288BE2EEB9FD0007F7C1C /* CacheController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD288BD2EEB9FD0007F7C1C /* CacheController.swift */; };
 		BDE485142ED2A447004CDB0E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BDE4850E2ED2A447004CDB0E /* Assets.xcassets */; };
+		BDE8A2012F00000100000001 /* tts.json in Resources */ = {isa = PBXBuildFile; fileRef = BDE8A2032F00000100000001 /* tts.json */; };
+		BDE8A2022F00000100000001 /* unicode_indexer.json in Resources */ = {isa = PBXBuildFile; fileRef = BDE8A2042F00000100000001 /* unicode_indexer.json */; };
 		BDE485192ED2A447004CDB0E /* ApplicationVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE485132ED2A447004CDB0E /* ApplicationVM.swift */; };
 		BDE4851A2ED2A447004CDB0E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE485102ED2A447004CDB0E /* ContentView.swift */; };
 		BDE4851B2ED2A447004CDB0E /* OnnxHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE485112ED2A447004CDB0E /* OnnxHelpers.swift */; };
@@ -59,6 +61,8 @@
 		BDD288BD2EEB9FD0007F7C1C /* CacheController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheController.swift; sourceTree = "<group>"; };
 		BDE4850D2ED2A447004CDB0E /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		BDE4850E2ED2A447004CDB0E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BDE8A2032F00000100000001 /* tts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tts.json; sourceTree = "<group>"; };
+		BDE8A2042F00000100000001 /* unicode_indexer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = unicode_indexer.json; sourceTree = "<group>"; };
 		BDE4850F2ED2A447004CDB0E /* TTSAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSAudioPlayer.swift; sourceTree = "<group>"; };
 		BDE485102ED2A447004CDB0E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BDE485112ED2A447004CDB0E /* OnnxHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnnxHelpers.swift; sourceTree = "<group>"; };
@@ -117,6 +121,8 @@
 			isa = PBXGroup;
 			children = (
 				BDE4850E2ED2A447004CDB0E /* Assets.xcassets */,
+				BDE8A2032F00000100000001 /* tts.json */,
+				BDE8A2042F00000100000001 /* unicode_indexer.json */,
 				BDE4852D2ED2BD90004CDB0E /* voice_styles */,
 				BD00D67D2ED164A90002FA95 /* onnx */,
 			);
@@ -264,6 +270,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BDE485142ED2A447004CDB0E /* Assets.xcassets in Resources */,
+				BDE8A2012F00000100000001 /* tts.json in Resources */,
+				BDE8A2022F00000100000001 /* unicode_indexer.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

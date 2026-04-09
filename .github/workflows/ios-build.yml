@@ -1,0 +1,84 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build App
+    runs-on: macos-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -project SupertonicTTS.xcodeproj \
+            -scheme "SupertonicTTS" \
+            -resolvePackageDependencies
+
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project SupertonicTTS.xcodeproj \
+            -scheme "SupertonicTTS" \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            clean build \
+            | tee /tmp/xcodebuild.log
+
+      - name: Archive unsigned app
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project SupertonicTTS.xcodeproj \
+            -scheme "SupertonicTTS" \
+            -destination "generic/platform=iOS" \
+            -archivePath /tmp/SupertonicTTS.xcarchive \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee /tmp/xcodebuild-archive.log
+
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH=$(find /tmp/SupertonicTTS.xcarchive/Products -name "*.app" | head -1)
+          mkdir -p /tmp/ipa/Payload
+          cp -R "$APP_PATH" /tmp/ipa/Payload/
+          cd /tmp/ipa
+          zip -r /tmp/SupertonicTTS-unsigned.ipa Payload
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: /tmp/xcodebuild*.log
+          retention-days: 7
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SupertonicTTS-unsigned-ipa
+          path: /tmp/SupertonicTTS-unsigned.ipa
+          retention-days: 14

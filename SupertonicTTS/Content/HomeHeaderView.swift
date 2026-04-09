@@ -8,6 +8,7 @@ import SwiftUI
 struct HeaderView: View {
     @Binding var showPerformance: Bool
     @State private var showPreferences = false
+    @Environment(ApplicationVM.self) private var vm
     
     init(_ showPerformance: Binding<Bool>) {
         self._showPerformance = showPerformance
@@ -54,7 +55,9 @@ struct HeaderView: View {
             .padding(.horizontal, 22)
             .padding(.top, 4)
         }
-        .sheet(isPresented: $showPreferences, content: PreferencesView.init)
+        .sheet(isPresented: $showPreferences) {
+            PreferencesView().environment(vm)
+        }
     }
     
     func togglePerfHud() {

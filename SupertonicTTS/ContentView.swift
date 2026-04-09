@@ -43,6 +43,7 @@ struct ContentView: View {
             .padding(.bottom, 90)
             .buttonStyle(.plain)
         }
+        .environment(vm)
         .animation(.spring(response: 0.3), value: vm.isGenerating)
         .overlay(alignment: .top) { HeaderView($showPerformanceHud) }
         .overlay(alignment: .bottom) { generateButton }
@@ -62,7 +63,9 @@ struct ContentView: View {
     }
     
     var voicesBasedOnAccent: [Voice] {
-        selectedAccent == .american ? [.engMale, .engFemale] : [.britMale, .britFemale]
+        selectedAccent == .american
+            ? [.engMale, .engFemale, .male3, .female3, .male4, .female4, .male5, .female5]
+            : [.britMale, .britFemale]
     }
 }
 
@@ -127,16 +130,18 @@ extension ContentView {
             .frame(maxWidth: .infinity, alignment: .leading)
             
             
-            HStack(spacing: 12) {
-                ForEach(voicesBasedOnAccent, id: \.identifier) { voice in
-                    Button(voice.displayName, systemImage: "") {
-                        Haptics.impact(style: .soft)
-                        
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            vm.voice = voice
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(voicesBasedOnAccent, id: \.identifier) { voice in
+                        Button(voice.displayName, systemImage: "") {
+                            Haptics.impact(style: .soft)
+
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                vm.voice = voice
+                            }
                         }
+                        .labelStyle(VoiceOptionLabelStyle(isSelected: vm.voice == voice))
                     }
-                    .labelStyle(VoiceOptionLabelStyle(isSelected: vm.voice == voice))
                 }
             }
         }

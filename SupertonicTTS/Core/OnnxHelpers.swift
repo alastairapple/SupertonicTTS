@@ -8,6 +8,111 @@ import Accelerate
 import OnnxRuntimeBindings
 
 
+fileprivate let AVAILABLE_LANGS = ["en"]
+
+
+fileprivate func isValidLang(_ lang: String) -> Bool {
+    AVAILABLE_LANGS.contains(lang)
+}
+
+
+func preprocessText(_ text: String, lang: String) -> String {
+    var text = text.decomposedStringWithCompatibilityMapping
+
+    text = text.unicodeScalars.filter { scalar in
+        let value = scalar.value
+        return !((value >= 0x1F600 && value <= 0x1F64F) ||
+                 (value >= 0x1F300 && value <= 0x1F5FF) ||
+                 (value >= 0x1F680 && value <= 0x1F6FF) ||
+                 (value >= 0x1F700 && value <= 0x1F77F) ||
+                 (value >= 0x1F780 && value <= 0x1F7FF) ||
+                 (value >= 0x1F800 && value <= 0x1F8FF) ||
+                 (value >= 0x1F900 && value <= 0x1F9FF) ||
+                 (value >= 0x1FA00 && value <= 0x1FA6F) ||
+                 (value >= 0x1FA70 && value <= 0x1FAFF) ||
+                 (value >= 0x2600 && value <= 0x26FF) ||
+                 (value >= 0x2700 && value <= 0x27BF) ||
+                 (value >= 0x1F1E6 && value <= 0x1F1FF))
+    }.map(String.init).joined()
+
+    let replacements: [String: String] = [
+        "–": "-",
+        "‑": "-",
+        "—": "-",
+        "_": " ",
+        "\u{201C}": "\"",
+        "\u{201D}": "\"",
+        "\u{2018}": "'",
+        "\u{2019}": "'",
+        "´": "'",
+        "`": "'",
+        "[": " ",
+        "]": " ",
+        "|": " ",
+        "/": " ",
+        "#": " ",
+        "→": " ",
+        "←": " ",
+    ]
+
+    for (old, new) in replacements {
+        text = text.replacingOccurrences(of: old, with: new)
+    }
+
+    let specialSymbols = ["♥", "☆", "♡", "©", "\\"]
+    for symbol in specialSymbols {
+        text = text.replacingOccurrences(of: symbol, with: "")
+    }
+
+    let expressionReplacements: [String: String] = [
+        "@": " at ",
+        "e.g.,": "for example, ",
+        "i.e.,": "that is, ",
+    ]
+
+    for (old, new) in expressionReplacements {
+        text = text.replacingOccurrences(of: old, with: new)
+    }
+
+    text = text.replacingOccurrences(of: " ,", with: ",")
+    text = text.replacingOccurrences(of: " .", with: ".")
+    text = text.replacingOccurrences(of: " !", with: "!")
+    text = text.replacingOccurrences(of: " ?", with: "?")
+    text = text.replacingOccurrences(of: " ;", with: ";")
+    text = text.replacingOccurrences(of: " :", with: ":")
+    text = text.replacingOccurrences(of: " '", with: "'")
+
+    while text.contains("\"\"") {
+        text = text.replacingOccurrences(of: "\"\"", with: "\"")
+    }
+    while text.contains("''") {
+        text = text.replacingOccurrences(of: "''", with: "'")
+    }
+    while text.contains("``") {
+        text = text.replacingOccurrences(of: "``", with: "`")
+    }
+
+    let whitespacePattern = try! NSRegularExpression(pattern: "\\s+")
+    let whitespaceRange = NSRange(text.startIndex..., in: text)
+    text = whitespacePattern.stringByReplacingMatches(in: text, range: whitespaceRange, withTemplate: " ")
+    text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    if !text.isEmpty {
+        let punctPattern = try! NSRegularExpression(pattern: "[.!?;:,'\"\\u201C\\u201D\\u2018\\u2019)\\]}…。」』】〉》›»]$")
+        let punctRange = NSRange(text.startIndex..., in: text)
+        if punctPattern.firstMatch(in: text, range: punctRange) == nil {
+            text += "."
+        }
+    }
+
+    guard isValidLang(lang) else {
+        fatalError("Invalid language: \(lang). Available: \(AVAILABLE_LANGS.joined(separator: ", "))")
+    }
+
+    return "<\(lang)>\(text)</\(lang)>"
+}
+
+
 
 // MARK: - Unicode Text Processor
 
@@ -19,12 +124,15 @@ class UnicodeProcessor {
         self.indexer = try JSONDecoder().decode([Int64].self, from: data)
     }
     
-    func call(_ textList: [String]) -> (textIds: [[Int64]], textMask: [[[Float]]]) {
-        let processedTexts = textList.map { $0.precomposedStringWithCompatibilityMapping }
+    func call(_ textList: [String], _ langList: [String]) -> (textIds: [[Int64]], textMask: [[[Float]]]) {
+        var processedTexts = [String]()
+        for (index, text) in textList.enumerated() {
+            processedTexts.append(preprocessText(text, lang: langList[index]))
+        }
         
         var textIdsLengths = [Int]()
         for text in processedTexts {
-            textIdsLengths.append(text.count)
+            textIdsLengths.append(text.unicodeScalars.count)
         }
         
         let maxLen = textIdsLengths.max() ?? 0
@@ -247,13 +355,14 @@ func loadSynthesizer(_ onnxDir: String, _ useGpu: Bool, _ env: ORTEnv) throws ->
     print("Using CPU for inference\n")
     
     let cfgs = try loadCfgs(onnxDir)
+    let modelDirURL = resolveModelDirectory(from: onnxDir)
     
     let sessionOptions = try ORTSessionOptions()
     
-    let dpPath = "\(onnxDir)/duration_predictor.onnx"
-    let textEncPath = "\(onnxDir)/text_encoder.onnx"
-    let vectorEstPath = "\(onnxDir)/vector_estimator.onnx"
-    let vocoderPath = "\(onnxDir)/vocoder.onnx"
+    let dpPath = modelDirURL.appendingPathComponent("duration_predictor.onnx").path
+    let textEncPath = modelDirURL.appendingPathComponent("text_encoder.onnx").path
+    let vectorEstPath = modelDirURL.appendingPathComponent("vector_estimator.onnx").path
+    let vocoderPath = modelDirURL.appendingPathComponent("vocoder.onnx").path
     
     let dpOrt = try ORTSession(env: env, modelPath: dpPath, sessionOptions: sessionOptions)
     let textEncOrt = try ORTSession(env: env, modelPath: textEncPath, sessionOptions: sessionOptions)
@@ -273,4 +382,16 @@ func loadCfgs(_ onnxDir: String) throws -> EngineConfig {
     let cfgPath = "\(onnxDir)/tts.json"
     let data = try Data(contentsOf: URL(fileURLWithPath: cfgPath))
     return try JSONDecoder().decode(EngineConfig.self, from: data)
+}
+
+
+private func resolveModelDirectory(from baseDir: String) -> URL {
+    let baseURL = URL(fileURLWithPath: baseDir, isDirectory: true)
+    let nestedOnnxURL = baseURL.appendingPathComponent("onnx", isDirectory: true)
+
+    if FileManager.default.fileExists(atPath: nestedOnnxURL.appendingPathComponent("duration_predictor.onnx").path) {
+        return nestedOnnxURL
+    }
+
+    return baseURL
 }

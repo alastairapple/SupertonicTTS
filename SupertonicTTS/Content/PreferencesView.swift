@@ -7,6 +7,7 @@ import SwiftUI
 
 
 struct PreferencesView: View {
+    @Environment(ApplicationVM.self) private var vm
     private let cacheController = CacheController.shared
     
     @State private var showResetConfirmation: Bool = false
@@ -16,8 +17,19 @@ struct PreferencesView: View {
     
     
     var body: some View {
+        @Bindable var vm = vm
+
         NavigationStack {
             Form {
+                Section("Synthesis") {
+                    Picker("Language", selection: $vm.language) {
+                        ForEach(Language.allCases, id: \.rawValue) { language in
+                            Text(language.displayName).tag(language)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
                 Section("Flags") {
                     Toggle("Haptics", isOn: Preferences.$hapticsEnabled)
                     Toggle("Warmup Engine on Launch", isOn: Preferences.$warmupOnLaunch)

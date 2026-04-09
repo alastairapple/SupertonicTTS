@@ -10,7 +10,3 @@ build/
 # Swift Package Manager
 .build/
 Packages/
-
-# Local TTS / ML assets (DO NOT COMMIT)
-SupertonicTTS/Resources/onnx/
-SupertonicTTS/Resources/voice_styles/

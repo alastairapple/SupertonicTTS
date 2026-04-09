@@ -39,14 +39,15 @@ class SupertonicSynthesizerEngine {
     }
     
     
-    func call(_ text: String, _ style: VoiceStyle, _ totalStep: Int, speed: Float, silenceDuration: Float) throws -> (wav: [Float], duration: Float) {
-        let chunks = chunkText(text)
+    func call(_ text: String, _ lang: String, _ style: VoiceStyle, _ totalStep: Int, speed: Float, silenceDuration: Float) throws -> (wav: [Float], duration: Float) {
+        let maxLen = lang == "ko" ? 120 : MAX_CHUNK_LENGTH
+        let chunks = chunkText(text, maxLen: maxLen)
         
         var wavCat = [Float]()
         var durCat: Float = 0.0
         
         for (i, chunk) in chunks.enumerated() {
-            let result = try _infer([chunk], style, totalStep, speed: speed)
+            let result = try _infer([chunk], [lang], style, totalStep, speed: speed)
             
             let dur = result.duration[0]
             let wavLen = Int(Float(sampleRate) * dur)
@@ -70,11 +71,11 @@ class SupertonicSynthesizerEngine {
 
     
     
-    private func _infer(_ textList: [String], _ style: VoiceStyle, _ totalStep: Int, speed: Float) throws -> (wav: [Float], duration: [Float]) {
+    private func _infer(_ textList: [String], _ langList: [String], _ style: VoiceStyle, _ totalStep: Int, speed: Float) throws -> (wav: [Float], duration: [Float]) {
         let bsz = textList.count
         
         // Process text
-        let (textIds, textMask) = textProcessor.call(textList)
+        let (textIds, textMask) = textProcessor.call(textList, langList)
         
         // Flatten text IDs
         let textIdsFlat = textIds.flatMap { $0 }

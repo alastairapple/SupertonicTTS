@@ -31,7 +31,7 @@ final class TTSService {
             try precomputeStyle(for: .engFemale)
             
             // Run a tiny synthesis to JIT/warm up kernels; discard file
-            let req = SynthesisRequest(text: "Warm up", voice: .engMale, steps: 1, speed: 1.0, silenceDuration: 0.01)
+            let req = SynthesisRequest(text: "Warm up", language: .en, voice: .engMale, steps: 1, speed: 1.0, silenceDuration: 0.01)
             let res = try await synthesize(req)
             try FileManager.default.removeItem(at: res.url)
         } catch {
@@ -46,7 +46,7 @@ final class TTSService {
         let style = try getStyle(voice: request.voice)
         
         // 2) Synthesize via packed TextToSpeech component
-        let (wav, duration) = try synthesizer.call(request.text, style, request.steps, speed: request.speed, silenceDuration: request.silenceDuration)
+        let (wav, duration) = try synthesizer.call(request.text, request.language.rawValue, style, request.steps, speed: request.speed, silenceDuration: request.silenceDuration)
         
         let audioSeconds = Double(duration)
         let wavLenSample = min(Int(Double(sampleRate) * audioSeconds), wav.count)
@@ -81,11 +81,8 @@ extension TTSService {
         let bundle = Bundle.main
 
         var candidates: [URL] = []
-        if let dir = bundle.resourceURL?.appendingPathComponent("onnx", isDirectory: true) { candidates.append(dir) }
-        if let dir = bundle.resourceURL?.appendingPathComponent("assets/onnx", isDirectory: true) { candidates.append(dir) }
-        if let url = bundle.url(forResource: "tts", withExtension: "json", subdirectory: "onnx") { candidates.append(url.deletingLastPathComponent()) }
-        if let url = bundle.url(forResource: "tts", withExtension: "json", subdirectory: "assets/onnx") { candidates.append(url.deletingLastPathComponent()) }
         if let url = bundle.url(forResource: "tts", withExtension: "json", subdirectory: nil) { candidates.append(url.deletingLastPathComponent()) }
+        if let dir = bundle.resourceURL?.appendingPathComponent("Resources", isDirectory: true) { candidates.append(dir) }
         if let root = bundle.resourceURL { candidates.append(root) }
 
         for dir in candidates {
@@ -99,21 +96,35 @@ extension TTSService {
     }
     
     private static func dirHasRequiredFiles(_ dir: URL) -> Bool {
-        let required = [
-            "tts.json",
+        let fileManager = FileManager.default
+        let configFiles = ["tts.json", "unicode_indexer.json"]
+        let flatOnnxFiles = [
             "duration_predictor.onnx",
             "text_encoder.onnx",
+            "text_encoder.onnx.1",
             "vector_estimator.onnx",
-            "vocoder.onnx"
+            "vocoder.onnx",
         ]
-        
-        return required.allSatisfy { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) }
+        let nestedOnnxDir = dir.appendingPathComponent("onnx", isDirectory: true)
+
+        let hasConfigFiles = configFiles.allSatisfy {
+            fileManager.fileExists(atPath: dir.appendingPathComponent($0).path)
+        }
+        let hasFlatOnnxFiles = flatOnnxFiles.allSatisfy {
+            fileManager.fileExists(atPath: dir.appendingPathComponent($0).path)
+        }
+        let hasNestedOnnxFiles = flatOnnxFiles.allSatisfy {
+            fileManager.fileExists(atPath: nestedOnnxDir.appendingPathComponent($0).path)
+        }
+
+        return hasConfigFiles && (hasFlatOnnxFiles || hasNestedOnnxFiles)
     }
 
     private static func locateVoiceStyleURL(voice: Voice) throws -> URL {
         let fileName = voice.identifier
         let bundle = Bundle.main
         let candidates: [URL?] = [
+            bundle.url(forResource: fileName, withExtension: "json", subdirectory: "Resources/voice_styles"),
             bundle.url(forResource: fileName, withExtension: "json", subdirectory: "voice_styles"),
             bundle.url(forResource: fileName, withExtension: "json", subdirectory: "assets/voice_styles"),
             bundle.url(forResource: fileName, withExtension: "json", subdirectory: nil)
@@ -124,6 +135,10 @@ extension TTSService {
         // Fallback: scan folders if needed
         if let folder1 = bundle.resourceURL?.appendingPathComponent("voice_styles", isDirectory: true) {
             let file = folder1.appendingPathComponent("\(fileName).json")
+            if FileManager.default.fileExists(atPath: file.path) { return file }
+        }
+        if let folderResources = bundle.resourceURL?.appendingPathComponent("Resources/voice_styles", isDirectory: true) {
+            let file = folderResources.appendingPathComponent("\(fileName).json")
             if FileManager.default.fileExists(atPath: file.path) { return file }
         }
         if let folder2 = bundle.resourceURL?.appendingPathComponent("assets/voice_styles", isDirectory: true) {

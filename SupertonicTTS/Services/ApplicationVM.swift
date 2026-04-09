@@ -17,6 +17,7 @@ final class ApplicationVM {
     
     
     var voice: Voice = .engMale
+    var language: Language = .en
     var steps: Double = 10
     var speed: Float = 1.05
     var silenceDuration: Float = 0.3
@@ -69,6 +70,7 @@ final class ApplicationVM {
             do {
                 let request = SynthesisRequest(
                     text: userText,
+                    language: language,
                     voice: voice,
                     steps: Int(steps),
                     speed: speed,
