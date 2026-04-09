@@ -525,7 +525,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		BD00D6592ED162D00002FA95 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/microsoft/onnxruntime-swift-package-manager?tab=readme-ov-file";
+			repositoryURL = "https://github.com/microsoft/onnxruntime-swift-package-manager";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.20.0;
