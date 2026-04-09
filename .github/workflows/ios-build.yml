@@ -71,17 +71,28 @@ jobs:
           xcrun simctl launch "$UDID" "$APP_BUNDLE_ID"
 
           CONTAINER_PATH=$(xcrun simctl get_app_container "$UDID" "$APP_BUNDLE_ID" app)
-          test -f "$CONTAINER_PATH/tts.json"
-          test -f "$CONTAINER_PATH/unicode_indexer.json"
-          test -f "$CONTAINER_PATH/onnx/duration_predictor.onnx"
-          test -f "$CONTAINER_PATH/onnx/text_encoder.onnx"
-          test -f "$CONTAINER_PATH/onnx/text_encoder.onnx.1"
-          test -f "$CONTAINER_PATH/onnx/vector_estimator.onnx"
-          test -f "$CONTAINER_PATH/onnx/vocoder.onnx"
-          test -f "$CONTAINER_PATH/voice_styles/M1.json"
-          test -f "$CONTAINER_PATH/voice_styles/M5.json"
-          test -f "$CONTAINER_PATH/voice_styles/F1.json"
-          test -f "$CONTAINER_PATH/voice_styles/F5.json"
+
+          assert_bundle_file() {
+            local relative_path="$1"
+            if [ -f "$CONTAINER_PATH/$relative_path" ] || [ -f "$CONTAINER_PATH/Resources/$relative_path" ]; then
+              return 0
+            fi
+            echo "Missing bundle file: $relative_path"
+            find "$CONTAINER_PATH" -maxdepth 3 -type f | sort
+            return 1
+          }
+
+          assert_bundle_file "tts.json"
+          assert_bundle_file "unicode_indexer.json"
+          assert_bundle_file "onnx/duration_predictor.onnx"
+          assert_bundle_file "onnx/text_encoder.onnx"
+          assert_bundle_file "onnx/text_encoder.onnx.1"
+          assert_bundle_file "onnx/vector_estimator.onnx"
+          assert_bundle_file "onnx/vocoder.onnx"
+          assert_bundle_file "voice_styles/M1.json"
+          assert_bundle_file "voice_styles/M5.json"
+          assert_bundle_file "voice_styles/F1.json"
+          assert_bundle_file "voice_styles/F5.json"
 
       - name: Archive unsigned app
         run: |
