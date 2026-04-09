@@ -12,7 +12,7 @@ struct Preferences {
     
     
     @AppStorage("WarmupOnLaunch")
-    static var warmupOnLaunch: Bool = true
+    static var warmupOnLaunch: Bool = false
     
     
     @AppStorage("HapticsEnabled")
@@ -29,7 +29,7 @@ struct Preferences {
     
     static func resetToDefaults() {
         Preferences.autoPlayOnNewGeneration = true
-        Preferences.warmupOnLaunch = true
+        Preferences.warmupOnLaunch = false
         
         Preferences.hapticsEnabled = true
         Preferences.savePromptsOnNewGeneration = true

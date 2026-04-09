@@ -119,3 +119,48 @@ jobs:
           name: SupertonicTTS-unsigned-ipa
           path: /tmp/SupertonicTTS-unsigned.ipa
           retention-days: 14
+
+      - name: Publish IPA to rolling release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_API="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
+          RELEASE_TAG="latest-build"
+          RELEASE_NAME="Latest Build"
+
+          EXISTING=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${RELEASE_API}/tags/${RELEASE_TAG}")
+          RELEASE_ID=$(printf '%s' "$EXISTING" | ruby -rjson -e 'data=JSON.parse(STDIN.read) rescue {}; puts(data["id"] || "")')
+
+          if [ -z "$RELEASE_ID" ]; then
+            RESPONSE=$(curl -s -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "$RELEASE_API" \
+              -d "{\"tag_name\":\"${RELEASE_TAG}\",\"name\":\"${RELEASE_NAME}\",\"target_commitish\":\"${GITHUB_SHA}\",\"prerelease\":true,\"generate_release_notes\":false}")
+            RELEASE_ID=$(printf '%s' "$RESPONSE" | ruby -rjson -e 'data=JSON.parse(STDIN.read); puts data.fetch("id")')
+          else
+            curl -s -X PATCH \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${RELEASE_API}/${RELEASE_ID}" \
+              -d "{\"name\":\"${RELEASE_NAME}\",\"target_commitish\":\"${GITHUB_SHA}\",\"prerelease\":true}" >/dev/null
+          fi
+
+          ASSETS=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${RELEASE_API}/${RELEASE_ID}/assets")
+          EXISTING_ASSET_ID=$(printf '%s' "$ASSETS" | ruby -rjson -e 'assets=JSON.parse(STDIN.read); asset=assets.find { |a| a["name"] == "SupertonicTTS-unsigned.ipa" }; puts(asset && asset["id"] || "")')
+
+          if [ -n "$EXISTING_ASSET_ID" ]; then
+            curl -s -X DELETE \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${EXISTING_ASSET_ID}" >/dev/null
+          fi
+
+          curl -s -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Content-Type: application/octet-stream" \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?name=SupertonicTTS-unsigned.ipa" \
+            --data-binary @/tmp/SupertonicTTS-unsigned.ipa >/dev/null
